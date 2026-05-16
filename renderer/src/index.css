@@ -1,0 +1,11 @@
+@import "tailwindcss";
+
+/* Tailwind v4 picks up content automatically from the @source directives below.
+   These cover the renderer source tree so JIT classes are emitted in dev/build. */
+@source "../index.html";
+@source "./**/*.{js,jsx}";
+
+html, body, #root {
+  height: 100%;
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', 'Sarabun', sans-serif;
+}
