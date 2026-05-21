@@ -14,8 +14,9 @@ const users = sqliteTable('users', {
   fullName:      text('full_name').notNull(),
   phone:         text('phone'),
   role:          text('role').notNull().default('staff'),       // 'admin' | 'staff'
-  isActive:      integer('is_active').notNull().default(1),
-  lastLoginAt:   text('last_login_at'),
+  isActive:           integer('is_active').notNull().default(1),
+  mustChangePassword: integer('must_change_password').notNull().default(0),
+  lastLoginAt:        text('last_login_at'),
   createdAt:     text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt:     text('updated_at'),
 });

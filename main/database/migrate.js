@@ -2,7 +2,7 @@
 // Uses PRAGMA user_version to track which version has been applied — idempotent on every launch.
 // Add new migrations as additional version blocks (v2, v3, ...) without changing v1.
 
-const CURRENT_VERSION = 1;
+const CURRENT_VERSION = 2;
 
 // All DDL for the initial schema (v1).
 // Tables are created in FK dependency order so REFERENCES are always valid.
@@ -272,27 +272,51 @@ CREATE INDEX IF NOT EXISTS idx_meter_period        ON meter_readings(room_id, pe
 CREATE INDEX IF NOT EXISTS idx_audit_user_time     ON audit_logs(user_id, created_at);
 `;
 
+// Phase 2 — add must_change_password to users.
+// UPDATE sets flag for any existing admin so they are prompted to change on next login.
+const V2_DDL = `
+ALTER TABLE users ADD COLUMN must_change_password INTEGER NOT NULL DEFAULT 0;
+UPDATE users SET must_change_password = 1 WHERE username = 'admin';
+`;
+
 /**
  * Run all pending migrations against the open better-sqlite3 instance.
  * Safe to call on every app start — already-applied versions are skipped.
+ * Each version block sets its own version number so chains apply in order.
  */
 function runMigrations(sqlite) {
-  const currentVersion = sqlite.pragma('user_version', { simple: true });
+  let version = sqlite.pragma('user_version', { simple: true });
 
-  if (currentVersion < 1) {
-    // Wrap in a transaction so a partial failure leaves the DB untouched
+  if (version < 1) {
     sqlite.exec('BEGIN;');
     try {
       sqlite.exec(V1_DDL);
-      sqlite.pragma(`user_version = ${CURRENT_VERSION}`);
+      sqlite.pragma('user_version = 1');
       sqlite.exec('COMMIT;');
       console.log('[DB] Migration v1 applied — schema created.');
+      version = 1;
     } catch (err) {
       sqlite.exec('ROLLBACK;');
       throw new Error(`[DB] Migration v1 failed: ${err.message}`);
     }
-  } else {
-    console.log(`[DB] Schema up-to-date (user_version = ${currentVersion}).`);
+  }
+
+  if (version < 2) {
+    sqlite.exec('BEGIN;');
+    try {
+      sqlite.exec(V2_DDL);
+      sqlite.pragma('user_version = 2');
+      sqlite.exec('COMMIT;');
+      console.log('[DB] Migration v2 applied — must_change_password added.');
+      version = 2;
+    } catch (err) {
+      sqlite.exec('ROLLBACK;');
+      throw new Error(`[DB] Migration v2 failed: ${err.message}`);
+    }
+  }
+
+  if (version === CURRENT_VERSION) {
+    console.log(`[DB] Schema up-to-date (user_version = ${version}).`);
   }
 }
 

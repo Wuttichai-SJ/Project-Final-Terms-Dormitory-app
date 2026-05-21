@@ -60,13 +60,28 @@ function runSeed() {
     // bcryptSync is used here because seeding runs synchronously at startup
     const passwordHash = bcrypt.hashSync('admin1234', 10);
     db.insert(users).values({
-      username:     'admin',
-      passwordHash: passwordHash,
-      fullName:     'ผู้ดูแลระบบ',
-      role:         'admin',
-      isActive:     1,
+      username:           'admin',
+      passwordHash:       passwordHash,
+      fullName:           'ผู้ดูแลระบบ',
+      role:               'admin',
+      isActive:           1,
+      mustChangePassword: 1, // force password change on first login
     }).run();
     console.log('[Seed] Admin user created (username: admin, password: admin1234).');
+  } else {
+    // Recovery: re-enable admin if it was accidentally deactivated — prevents permanent lockout
+    const adminActive = db
+      .select({ isActive: users.isActive })
+      .from(users)
+      .where(eq(users.username, 'admin'))
+      .get();
+    if (adminActive && !adminActive.isActive) {
+      db.update(users)
+        .set({ isActive: 1 })
+        .where(eq(users.username, 'admin'))
+        .run();
+      console.log('[Seed] Admin account was deactivated — re-enabled automatically.');
+    }
   }
 
   // 2. Role permissions ────────────────────────────────────────────────────────

@@ -5,6 +5,8 @@ const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('node:path');
 const { initDatabase } = require('./database/client');
 const { runSeed } = require('./database/seed');
+const { registerAuthHandlers } = require('./handlers/authHandlers');
+const { registerUserHandlers } = require('./handlers/userHandlers');
 
 // IS_DEV is true when launched via `npm run dev` (vite dev server running on :5173).
 // In production the renderer is loaded from the bundled HTML on disk.
@@ -57,9 +59,12 @@ ipcMain.handle('app:ping', async () => {
 });
 
 app.whenReady().then(() => {
-  // DB must be ready before the window opens so IPC handlers have a live db instance
+  // DB must be ready before handlers are registered — handlers call getDb() at request time
   initDatabase(app.getPath('userData'));
   runSeed();
+
+  registerAuthHandlers();
+  registerUserHandlers();
 
   createMainWindow();
 
