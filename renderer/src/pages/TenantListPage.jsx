@@ -96,8 +96,8 @@ export function TenantListPage() {
               {tenants.map(t => (
                 <tr key={t.id} className="border-b border-slate-100 hover:bg-slate-50">
                   <td className="px-4 py-3 font-medium text-slate-800">{t.fullName}</td>
-                  <td className="px-4 py-3 text-slate-500">{t.phone}</td>
-                  <td className="px-4 py-3 text-slate-500">{t.idCard || '—'}</td>
+                  <td className="px-4 py-3 text-slate-500">{formatPhone(t.phone)}</td>
+                  <td className="px-4 py-3 text-slate-500">{t.idCard ? formatIdCard(t.idCard) : '—'}</td>
                   <td className="px-4 py-3 text-slate-500">{t.nationality || '—'}</td>
                   <td className="px-4 py-3">
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${t.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
@@ -184,6 +184,14 @@ function TenantFormModal({ tenant, onClose, onSaved }) {
     return e => setForm(p => ({ ...p, [key]: e.target.value }));
   }
 
+  function setPhone(e) {
+    setForm(p => ({ ...p, phone: formatPhone(e.target.value) }));
+  }
+
+  function setIdCard(e) {
+    setForm(p => ({ ...p, idCard: formatIdCard(e.target.value) }));
+  }
+
   return (
     <Modal title={isEdit ? 'แก้ไขข้อมูลผู้เช่า' : 'เพิ่มผู้เช่าใหม่'} onClose={onClose}>
       {error && <ErrorBox message={error} />}
@@ -192,11 +200,26 @@ function TenantFormModal({ tenant, onClose, onSaved }) {
           <input value={form.fullName} onChange={set('fullName')} required className={inputCls} />
         </Field>
         <Field label="เบอร์โทรศัพท์ *">
-          <input value={form.phone} onChange={set('phone')} required className={inputCls} />
+          <input
+            value={form.phone}
+            onChange={setPhone}
+            required
+            inputMode="numeric"
+            maxLength={12}
+            placeholder="092-441-9446"
+            className={inputCls}
+          />
         </Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="เลขบัตรประชาชน">
-            <input value={form.idCard} onChange={set('idCard')} className={inputCls} />
+            <input
+              value={form.idCard}
+              onChange={setIdCard}
+              inputMode="numeric"
+              maxLength={17}
+              placeholder="1-1111-11111-11-1"
+              className={inputCls}
+            />
           </Field>
           <Field label="สัญชาติ">
             <input value={form.nationality} onChange={set('nationality')} className={inputCls} placeholder="ไทย" />
@@ -263,3 +286,25 @@ function ErrorBox({ message }) {
 }
 
 const inputCls = 'w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500';
+
+// Thai phone: 10 digits → XXX-XXX-XXXX
+function formatPhone(value) {
+  if (!value) return '';
+  const d = String(value).replace(/\D/g, '').slice(0, 10);
+  if (d.length <= 3) return d;
+  if (d.length <= 6) return `${d.slice(0, 3)}-${d.slice(3)}`;
+  return `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}`;
+}
+
+// Thai national ID: 13 digits → X-XXXX-XXXXX-XX-X
+function formatIdCard(value) {
+  if (!value) return '';
+  const d = String(value).replace(/\D/g, '').slice(0, 13);
+  const parts = [];
+  if (d.length >= 1)  parts.push(d.slice(0, 1));
+  if (d.length >= 2)  parts.push(d.slice(1, 5));
+  if (d.length >= 6)  parts.push(d.slice(5, 10));
+  if (d.length >= 11) parts.push(d.slice(10, 12));
+  if (d.length >= 13) parts.push(d.slice(12, 13));
+  return parts.join('-');
+}
