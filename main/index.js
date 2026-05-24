@@ -5,8 +5,12 @@ const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('node:path');
 const { initDatabase } = require('./database/client');
 const { runSeed } = require('./database/seed');
-const { registerAuthHandlers } = require('./handlers/authHandlers');
-const { registerUserHandlers } = require('./handlers/userHandlers');
+const { registerAuthHandlers }     = require('./handlers/authHandlers');
+const { registerUserHandlers }     = require('./handlers/userHandlers');
+const { registerBuildingHandlers } = require('./handlers/buildingHandlers');
+const { registerRoomHandlers }     = require('./handlers/roomHandlers');
+const { registerTenantHandlers }   = require('./handlers/tenantHandlers');
+const { registerSettingsHandlers } = require('./handlers/settingsHandlers');
 
 // IS_DEV is true when launched via `npm run dev` (vite dev server running on :5173).
 // In production the renderer is loaded from the bundled HTML on disk.
@@ -65,6 +69,10 @@ app.whenReady().then(() => {
 
   registerAuthHandlers();
   registerUserHandlers();
+  registerBuildingHandlers();
+  registerRoomHandlers();
+  registerTenantHandlers();
+  registerSettingsHandlers();
 
   createMainWindow();
 

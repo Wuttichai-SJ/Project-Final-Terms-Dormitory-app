@@ -2,12 +2,13 @@ import { useAuth } from '../../context/AuthContext';
 import { usePermission } from '../../hooks/usePermission';
 import {
   Home, Users, LogOut, Settings, Shield,
-  Building2, FileText, BarChart3, ClipboardList,
+  Building2, FileText, BarChart3, ClipboardList, UserRound,
 } from 'lucide-react';
 
 const NAV_ITEMS = [
   { key: 'dashboard', label: 'หน้าหลัก',        icon: Home,          permission: 'dashboard.view' },
   { key: 'rooms',     label: 'ห้องพัก',           icon: Building2,     permission: 'rooms.view' },
+  { key: 'tenants',   label: 'ผู้เช่า',           icon: UserRound,     permission: 'tenants.view' },
   { key: 'leases',    label: 'สัญญาเช่า',         icon: FileText,      permission: 'rooms.view' },
   { key: 'billing',   label: 'ออกบิล',            icon: ClipboardList, permission: 'bills.create' },
   { key: 'summary',   label: 'สรุปการชำระ',       icon: BarChart3,     permission: 'summary.view' },

@@ -43,7 +43,7 @@ function registerAuthHandlers() {
         fullName:           user.fullName,
         phone:              user.phone,
         role:               user.role,
-        mustChangePassword: user.mustChangePassword === 1,
+        mustChangePassword: user.mustChangePassword === 0,
         permissions:        buildPermissionMap(user.role),
       };
       setSession(session);

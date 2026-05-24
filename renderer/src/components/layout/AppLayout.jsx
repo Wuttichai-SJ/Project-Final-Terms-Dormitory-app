@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { Sidebar } from './Sidebar';
 import { UserManagementPage } from '../../pages/UserManagementPage';
+import { RoomListPage }        from '../../pages/RoomListPage';
+import { TenantListPage }      from '../../pages/TenantListPage';
+import { SettingsPage }        from '../../pages/SettingsPage';
 
 // Placeholder shown for pages not yet built in later phases
 function ComingSoon({ label }) {
@@ -18,6 +21,7 @@ function ComingSoon({ label }) {
 const PAGE_LABELS = {
   dashboard: 'หน้าหลัก (Dashboard)',
   rooms:     'ห้องพัก',
+  tenants:   'ผู้เช่า',
   leases:    'สัญญาเช่า',
   billing:   'ออกบิล',
   summary:   'สรุปการชำระ',
@@ -30,7 +34,10 @@ export function AppLayout() {
   const [currentPage, setCurrentPage] = useState('dashboard');
 
   function renderPage() {
-    if (currentPage === 'users') return <UserManagementPage />;
+    if (currentPage === 'users')    return <UserManagementPage />;
+    if (currentPage === 'rooms')    return <RoomListPage />;
+    if (currentPage === 'tenants')  return <TenantListPage />;
+    if (currentPage === 'settings') return <SettingsPage />;
     return <ComingSoon label={PAGE_LABELS[currentPage] || currentPage} />;
   }
 
