@@ -89,7 +89,7 @@ export function UserManagementPage() {
                   <td className="px-4 py-3">
                     <RoleBadge role={u.role} />
                   </td>
-                  <td className="px-4 py-3 text-slate-500">{u.phone || '—'}</td>
+                  <td className="px-4 py-3 text-slate-500">{u.phone ? formatPhone(u.phone) : '—'}</td>
                   <td className="px-4 py-3 text-xs text-slate-500">
                     {u.lastLoginAt
                       ? new Date(u.lastLoginAt).toLocaleString('th-TH')
@@ -170,7 +170,14 @@ function CreateUserModal({ onClose, onCreated }) {
           <input type="password" value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))} required minLength={6} className={inputCls} />
         </Field>
         <Field label="เบอร์โทรศัพท์">
-          <input value={form.phone} onChange={e => setForm(p => ({ ...p, phone: e.target.value }))} className={inputCls} />
+          <input
+            value={form.phone}
+            onChange={e => setForm(p => ({ ...p, phone: formatPhone(e.target.value) }))}
+            inputMode="numeric"
+            maxLength={12}
+            placeholder="092-441-9446"
+            className={inputCls}
+          />
         </Field>
         <Field label="สิทธิ์ *">
           <select value={form.role} onChange={e => setForm(p => ({ ...p, role: e.target.value }))} className={inputCls}>
@@ -189,7 +196,7 @@ function CreateUserModal({ onClose, onCreated }) {
 }
 
 function EditUserModal({ user, onClose, onSaved }) {
-  const [form, setForm] = useState({ fullName: user.fullName, phone: user.phone || '', role: user.role });
+  const [form, setForm] = useState({ fullName: user.fullName, phone: formatPhone(user.phone || ''), role: user.role });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showReset, setShowReset] = useState(false);
@@ -212,7 +219,14 @@ function EditUserModal({ user, onClose, onSaved }) {
           <input value={form.fullName} onChange={e => setForm(p => ({ ...p, fullName: e.target.value }))} required className={inputCls} />
         </Field>
         <Field label="เบอร์โทรศัพท์">
-          <input value={form.phone} onChange={e => setForm(p => ({ ...p, phone: e.target.value }))} className={inputCls} />
+          <input
+            value={form.phone}
+            onChange={e => setForm(p => ({ ...p, phone: formatPhone(e.target.value) }))}
+            inputMode="numeric"
+            maxLength={12}
+            placeholder="092-441-9446"
+            className={inputCls}
+          />
         </Field>
         <Field label="สิทธิ์ *">
           <select value={form.role} onChange={e => setForm(p => ({ ...p, role: e.target.value }))} className={inputCls}>
@@ -359,3 +373,12 @@ function ActiveBadge({ active }) {
 }
 
 const inputCls = 'w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500';
+
+// Thai phone: 10 digits → XXX-XXX-XXXX
+function formatPhone(value) {
+  if (!value) return '';
+  const d = String(value).replace(/\D/g, '').slice(0, 10);
+  if (d.length <= 3) return d;
+  if (d.length <= 6) return `${d.slice(0, 3)}-${d.slice(3)}`;
+  return `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}`;
+}
