@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Plus, Pencil, Trash2, BedDouble } from 'lucide-react';
 import { invoke } from '../lib/ipc';
 import { usePermission } from '../hooks/usePermission';
+import { Pagination, PAGE_SIZE } from '../components/Pagination';
 
 const STATUS_STYLE = {
   Vacant:      { badge: 'bg-emerald-50 text-emerald-700 border-emerald-200',  dot: 'bg-emerald-500' },
@@ -23,6 +24,7 @@ export function RoomListPage() {
   const [loading, setLoading]       = useState(true);
   const [error, setError]           = useState('');
   const [filters, setFilters]       = useState({ buildingId: '', floor: '', status: '' });
+  const [page, setPage]             = useState(1);
   const [editTarget, setEditTarget] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -47,7 +49,14 @@ export function RoomListPage() {
   useEffect(() => { fetchBuildings(); }, []);
   useEffect(() => { fetchRooms(); }, [filters]);
 
+  // Reset to first page whenever filters change
+  useEffect(() => { setPage(1); }, [filters]);
+
   const floorOptions = [...new Set(rooms.map(r => r.floor))].sort((a, b) => a - b);
+
+  const totalPages    = Math.max(1, Math.ceil(rooms.length / PAGE_SIZE));
+  const currentPage   = Math.min(page, totalPages);
+  const paginatedRooms = rooms.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   async function handleDelete(room) {
     const res = await invoke('room:delete', { id: room.id });
@@ -172,6 +181,7 @@ export function RoomListPage() {
           <p className="text-sm text-slate-400">ไม่พบห้องพักที่ตรงกับเงื่อนไข</p>
         </div>
       ) : (
+        <div>
         <div className="overflow-hidden bg-white border shadow-sm rounded-2xl border-slate-200">
           <table className="w-full text-sm">
             <thead>
@@ -186,7 +196,7 @@ export function RoomListPage() {
               </tr>
             </thead>
             <tbody>
-              {rooms.map(room => {
+              {paginatedRooms.map(room => {
                 const style = STATUS_STYLE[room.status];
                 return (
                   <tr key={room.id} className="transition-colors border-b border-slate-100 last:border-0 hover:bg-slate-50">
@@ -226,6 +236,8 @@ export function RoomListPage() {
               })}
             </tbody>
           </table>
+        </div>
+        <Pagination page={currentPage} total={rooms.length} onPageChange={setPage} />
         </div>
       )}
 

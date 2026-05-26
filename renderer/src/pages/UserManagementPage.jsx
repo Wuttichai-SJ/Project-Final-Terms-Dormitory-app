@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react';
 import { Plus, UserCircle } from 'lucide-react';
 import { invoke } from '../lib/ipc';
 import { usePermission } from '../hooks/usePermission';
+import { Pagination, PAGE_SIZE } from '../components/Pagination';
 
 export function UserManagementPage() {
   const { has } = usePermission();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [page, setPage] = useState(1);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
 
@@ -20,6 +22,10 @@ export function UserManagementPage() {
   }
 
   useEffect(() => { fetchUsers(); }, []);
+
+  const totalPages       = Math.max(1, Math.ceil(users.length / PAGE_SIZE));
+  const currentPage      = Math.min(page, totalPages);
+  const paginatedUsers   = users.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   async function handleToggleActive(u) {
     await invoke('user:update', {
@@ -63,6 +69,7 @@ export function UserManagementPage() {
       {loading ? (
         <p className="text-sm text-slate-400">กำลังโหลด...</p>
       ) : (
+        <div>
         <div className="overflow-hidden bg-white border rounded-xl border-slate-200">
           <table className="w-full text-sm">
             <thead>
@@ -77,7 +84,7 @@ export function UserManagementPage() {
               </tr>
             </thead>
             <tbody>
-              {users.map(u => (
+              {paginatedUsers.map(u => (
                 <tr key={u.id} className="border-b border-slate-100 hover:bg-slate-50">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
@@ -118,6 +125,8 @@ export function UserManagementPage() {
               ))}
             </tbody>
           </table>
+        </div>
+        <Pagination page={currentPage} total={users.length} onPageChange={setPage} />
         </div>
       )}
 

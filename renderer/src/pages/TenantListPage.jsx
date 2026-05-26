@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Plus, Search, Pencil, Trash2, Users } from 'lucide-react';
 import { invoke } from '../lib/ipc';
 import { usePermission } from '../hooks/usePermission';
+import { Pagination, PAGE_SIZE } from '../components/Pagination';
 
 export function TenantListPage() {
   const { has } = usePermission();
@@ -9,6 +10,7 @@ export function TenantListPage() {
   const [loading, setLoading]       = useState(true);
   const [error, setError]           = useState('');
   const [search, setSearch]         = useState('');
+  const [page, setPage]             = useState(1);
   const [editTarget, setEditTarget] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -29,6 +31,13 @@ export function TenantListPage() {
     const t = setTimeout(() => fetchTenants(search), 300);
     return () => clearTimeout(t);
   }, [search]);
+
+  // Reset to first page whenever the search query changes
+  useEffect(() => { setPage(1); }, [search]);
+
+  const totalPages   = Math.max(1, Math.ceil(tenants.length / PAGE_SIZE));
+  const currentPage  = Math.min(page, totalPages);
+  const paginatedTenants = tenants.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   async function handleDelete(tenant) {
     setDeleteError('');
@@ -80,6 +89,7 @@ export function TenantListPage() {
           <p className="text-sm">{search ? 'ไม่พบผู้เช่าที่ตรงกับการค้นหา' : 'ยังไม่มีผู้เช่าในระบบ'}</p>
         </div>
       ) : (
+        <div>
         <div className="overflow-hidden bg-white border rounded-xl border-slate-200">
           <table className="w-full text-sm">
             <thead>
@@ -93,7 +103,7 @@ export function TenantListPage() {
               </tr>
             </thead>
             <tbody>
-              {tenants.map(t => (
+              {paginatedTenants.map(t => (
                 <tr key={t.id} className="border-b border-slate-100 hover:bg-slate-50">
                   <td className="px-4 py-3 font-medium text-slate-800">{t.fullName}</td>
                   <td className="px-4 py-3 text-slate-500">{formatPhone(t.phone)}</td>
@@ -122,6 +132,8 @@ export function TenantListPage() {
               ))}
             </tbody>
           </table>
+        </div>
+        <Pagination page={currentPage} total={tenants.length} onPageChange={setPage} />
         </div>
       )}
 

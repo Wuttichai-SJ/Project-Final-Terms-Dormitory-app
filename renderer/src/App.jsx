@@ -7,14 +7,15 @@ export function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-100 flex items-center justify-center text-slate-400 text-sm">
+      <div className="flex items-center justify-center min-h-screen text-sm bg-slate-100 text-slate-400">
         กำลังโหลด...
       </div>
     );
   }
 
   // Not logged in, or logged in but must change password first
-  if (!user || user.mustChangePassword) return <LoginPage />;
+  // if (!user || user.mustChangePassword) return <LoginPage />;
+  if (!user) return <LoginPage/>
 
   return <AppLayout />;
 }

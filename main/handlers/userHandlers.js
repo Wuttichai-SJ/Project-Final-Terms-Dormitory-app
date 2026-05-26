@@ -34,7 +34,9 @@ function registerUserHandlers() {
     }
   });
 
-  // Create a new user — admin only. New users must change password on first login.
+  // Create a new user — admin only.
+  // NOTE: mustChangePassword is forced to 0 because the force-change-password screen
+  // in LoginPage is currently disabled. Flip back to 1 once that UI is re-enabled.
   ipcMain.handle('user:create', async (_event, payload) => {
     try {
       requireAuth();
@@ -72,7 +74,7 @@ function registerUserHandlers() {
           phone:              phone?.trim() || null,
           role,
           isActive:           1,
-          mustChangePassword: 1,
+          mustChangePassword: 0,
         })
         .returning()
         .get();
@@ -113,7 +115,9 @@ function registerUserHandlers() {
     }
   });
 
-  // Reset another user's password — admin only. Sets mustChangePassword so they change it on next login.
+  // Reset another user's password — admin only.
+  // NOTE: mustChangePassword is forced to 0 here for the same reason as user:create.
+  // Flip back to 1 once the change-password UI in LoginPage is re-enabled.
   ipcMain.handle('user:resetPassword', async (_event, { id, newPassword }) => {
     try {
       requireAuth();
@@ -125,7 +129,7 @@ function registerUserHandlers() {
       const hash = await hashPassword(newPassword);
       const db = getDb();
       db.update(users)
-        .set({ passwordHash: hash, mustChangePassword: 1 })
+        .set({ passwordHash: hash, mustChangePassword: 0 })
         .where(eq(users.id, id))
         .run();
 
