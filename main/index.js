@@ -11,6 +11,8 @@ const { registerBuildingHandlers } = require('./handlers/buildingHandlers');
 const { registerRoomHandlers }     = require('./handlers/roomHandlers');
 const { registerTenantHandlers }   = require('./handlers/tenantHandlers');
 const { registerSettingsHandlers } = require('./handlers/settingsHandlers');
+const { registerLeaseHandlers }       = require('./handlers/leaseHandlers');
+const { registerReservationHandlers } = require('./handlers/reservationHandlers');
 
 // IS_DEV is true when launched via `npm run dev` (vite dev server running on :5173).
 // In production the renderer is loaded from the bundled HTML on disk.
@@ -73,6 +75,8 @@ app.whenReady().then(() => {
   registerRoomHandlers();
   registerTenantHandlers();
   registerSettingsHandlers();
+  registerLeaseHandlers();
+  registerReservationHandlers();
 
   createMainWindow();
 

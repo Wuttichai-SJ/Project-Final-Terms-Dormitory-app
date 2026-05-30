@@ -3,6 +3,7 @@ import { Plus, Search, Pencil, Trash2, Users } from 'lucide-react';
 import { invoke } from '../lib/ipc';
 import { usePermission } from '../hooks/usePermission';
 import { Pagination, PAGE_SIZE } from '../components/Pagination';
+import { formatPhone, formatIdCard } from '../lib/format';
 
 export function TenantListPage() {
   const { has } = usePermission();
@@ -110,9 +111,7 @@ export function TenantListPage() {
                   <td className="px-4 py-3 text-slate-500">{t.idCard ? formatIdCard(t.idCard) : '—'}</td>
                   <td className="px-4 py-3 text-slate-500">{t.nationality || '—'}</td>
                   <td className="px-4 py-3">
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${t.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
-                      {t.status === 'Active' ? 'พักอยู่' : 'ย้ายออกแล้ว'}
-                    </span>
+                    <ResidencyBadge tenant={t} />
                   </td>
                   <td className="px-4 py-3 pr-6">
                     <div className="flex items-center justify-end gap-3">
@@ -121,7 +120,7 @@ export function TenantListPage() {
                           <Pencil className="w-3 h-3" /> แก้ไข
                         </button>
                       )}
-                      {has('tenants.delete') && t.status !== 'Active' && (
+                      {has('tenants.delete') && !t.currentLeaseId && (
                         <button onClick={() => { setDeleteError(''); setDeleteTarget(t); }} className="flex items-center gap-1 text-xs text-red-400 hover:text-red-600 transition-colors">
                           <Trash2 className="w-3 h-3" /> ลบ
                         </button>
@@ -255,6 +254,9 @@ function ConfirmDeleteModal({ label, error, onCancel, onConfirm }) {
   return (
     <Modal title="ยืนยันการลบ" onClose={onCancel}>
       <p className="text-sm text-slate-600">คุณต้องการลบ <span className="font-medium text-slate-800">{label}</span> ออกจากระบบใช่หรือไม่?</p>
+      <p className="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-lg p-2">
+        ระบบจะซ่อนผู้เช่ารายนี้ออกจากรายการ แต่ประวัติสัญญาเช่า/บิล/บันทึก Move-Out จะยังถูกเก็บไว้เพื่อการอ้างอิงและการตรวจสอบ
+      </p>
       {error && <ErrorBox message={error} />}
       <div className="flex gap-3 pt-2">
         <button onClick={onCancel} className="flex-1 py-2 text-sm border rounded-lg border-slate-300 text-slate-600 hover:bg-slate-50 transition-colors">ยกเลิก</button>
@@ -297,26 +299,22 @@ function ErrorBox({ message }) {
   return <div className="p-3 text-sm text-red-700 border border-red-200 rounded-lg bg-red-50">{message}</div>;
 }
 
+// Three states (drived from joined currentLeaseId on tenant:list):
+//   - MovedOut          → slate "ย้ายออกแล้ว"
+//   - Active + lease    → green "พักอยู่ · ห้อง XX"
+//   - Active + no lease → slate "ลงทะเบียน"
+function ResidencyBadge({ tenant }) {
+  if (tenant.status !== 'Active') {
+    return <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-500">ย้ายออกแล้ว</span>;
+  }
+  if (tenant.currentLeaseId) {
+    return (
+      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+        พักอยู่ · ห้อง {tenant.currentRoomNumber}
+      </span>
+    );
+  }
+  return <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700">ลงทะเบียน</span>;
+}
+
 const inputCls = 'w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500';
-
-// Thai phone: 10 digits → XXX-XXX-XXXX
-function formatPhone(value) {
-  if (!value) return '';
-  const d = String(value).replace(/\D/g, '').slice(0, 10);
-  if (d.length <= 3) return d;
-  if (d.length <= 6) return `${d.slice(0, 3)}-${d.slice(3)}`;
-  return `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}`;
-}
-
-// Thai national ID: 13 digits → X-XXXX-XXXXX-XX-X
-function formatIdCard(value) {
-  if (!value) return '';
-  const d = String(value).replace(/\D/g, '').slice(0, 13);
-  const parts = [];
-  if (d.length >= 1)  parts.push(d.slice(0, 1));
-  if (d.length >= 2)  parts.push(d.slice(1, 5));
-  if (d.length >= 6)  parts.push(d.slice(5, 10));
-  if (d.length >= 11) parts.push(d.slice(10, 12));
-  if (d.length >= 13) parts.push(d.slice(12, 13));
-  return parts.join('-');
-}

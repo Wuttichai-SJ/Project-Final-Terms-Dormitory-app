@@ -92,9 +92,15 @@ function registerRoomHandlers() {
       const existing = db.select().from(rooms).where(eq(rooms.id, id)).get();
       if (!existing) return { success: false, error: 'ไม่พบห้องนี้' };
 
-      // Occupied/Reserved status must come from lease/reservation handlers, not manual edits
-      if (status && ['Occupied', 'Reserved'].includes(status) && status !== existing.status) {
-        return { success: false, error: 'ไม่สามารถตั้งสถานะ Occupied หรือ Reserved ด้วยตนเองได้' };
+      // Occupied/Reserved status must come from lease/reservation handlers, not manual edits.
+      // The guard is symmetric: you cannot manually set it AND you cannot manually leave it.
+      if (status && status !== existing.status) {
+        if (['Occupied', 'Reserved'].includes(status)) {
+          return { success: false, error: 'ไม่สามารถตั้งสถานะ Occupied หรือ Reserved ด้วยตนเองได้ (ใช้เมนูสัญญาเช่า/การจอง)' };
+        }
+        if (['Occupied', 'Reserved'].includes(existing.status)) {
+          return { success: false, error: `ห้องนี้กำลัง ${existing.status === 'Occupied' ? 'มีผู้เช่าอยู่' : 'ถูกจอง'} — ต้องยกเลิกสัญญา/การจองก่อนจึงจะเปลี่ยนสถานะได้` };
+        }
       }
 
       db.update(rooms).set({

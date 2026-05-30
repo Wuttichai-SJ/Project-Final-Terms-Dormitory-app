@@ -4,6 +4,7 @@ import { UserManagementPage } from '../../pages/UserManagementPage';
 import { RoomListPage }        from '../../pages/RoomListPage';
 import { TenantListPage }      from '../../pages/TenantListPage';
 import { SettingsPage }        from '../../pages/SettingsPage';
+import { LeaseListPage }       from '../../pages/LeaseListPage';
 
 // Placeholder shown for pages not yet built in later phases
 function ComingSoon({ label }) {
@@ -37,6 +38,7 @@ export function AppLayout() {
     if (currentPage === 'users')    return <UserManagementPage />;
     if (currentPage === 'rooms')    return <RoomListPage />;
     if (currentPage === 'tenants')  return <TenantListPage />;
+    if (currentPage === 'leases')   return <LeaseListPage />;
     if (currentPage === 'settings') return <SettingsPage />;
     return <ComingSoon label={PAGE_LABELS[currentPage] || currentPage} />;
   }

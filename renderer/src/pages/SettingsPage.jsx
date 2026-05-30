@@ -162,13 +162,6 @@ function RatesSection({ canEdit }) {
               <input type="number" min="1" value={form.dueDays} onChange={set('dueDays')} disabled={!canEdit} className={inputCls(canEdit)} />
             </Field>
           </div>
-          <Field label="นโยบายย้ายออกก่อนกำหนด">
-            <select value={form.earlyTerminationPolicy} onChange={set('earlyTerminationPolicy')} disabled={!canEdit} className={inputCls(canEdit)}>
-              <option value="A">A — ริบเงินประกันทั้งหมด</option>
-              <option value="B">B — หักตามสัดส่วนเดือนที่เหลือ</option>
-              <option value="C">C — หักครึ่งหนึ่งของเงินประกัน</option>
-            </select>
-          </Field>
         </div>
 
         {/* Footer actions */}

@@ -2,7 +2,7 @@
 // Uses PRAGMA user_version to track which version has been applied — idempotent on every launch.
 // Add new migrations as additional version blocks (v2, v3, ...) without changing v1.
 
-const CURRENT_VERSION = 2;
+const CURRENT_VERSION = 3;
 
 // All DDL for the initial schema (v1).
 // Tables are created in FK dependency order so REFERENCES are always valid.
@@ -279,6 +279,42 @@ ALTER TABLE users ADD COLUMN must_change_password INTEGER NOT NULL DEFAULT 0;
 UPDATE users SET must_change_password = 1 WHERE username = 'admin';
 `;
 
+// Phase 4+ — add 'Deleted' to tenants.status CHECK so we can soft-delete instead
+// of physically removing rows (which would break FKs from historical leases/bills/move-outs).
+// SQLite can't ALTER a CHECK constraint in place; the standard recipe is to rebuild
+// the table. Foreign keys must be disabled around the rebuild so referencing rows
+// (leases.tenant_id, bills.tenant_id, move_out_records.tenant_id, rooms.current_tenant_id)
+// don't fail during the DROP/RENAME step. The wrapper in runMigrations() handles that.
+const V3_DDL = `
+CREATE TABLE tenants_new (
+  id           INTEGER PRIMARY KEY AUTOINCREMENT,
+  full_name    TEXT    NOT NULL,
+  phone        TEXT    NOT NULL,
+  id_card      TEXT    UNIQUE,
+  nationality  TEXT,
+  address      TEXT,
+  status       TEXT    NOT NULL DEFAULT 'Active' CHECK(status IN ('Active','MovedOut','Deleted')),
+  note         TEXT,
+  created_at   TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at   TEXT
+);
+
+INSERT INTO tenants_new (id, full_name, phone, id_card, nationality, address, status, note, created_at, updated_at)
+SELECT id, full_name, phone, id_card, nationality, address, status, note, created_at, updated_at FROM tenants;
+
+DROP TABLE tenants;
+ALTER TABLE tenants_new RENAME TO tenants;
+
+CREATE INDEX IF NOT EXISTS idx_tenants_idcard ON tenants(id_card);
+CREATE INDEX IF NOT EXISTS idx_tenants_name   ON tenants(full_name);
+
+CREATE TRIGGER IF NOT EXISTS trg_tenants_updated_at
+AFTER UPDATE ON tenants FOR EACH ROW
+BEGIN
+  UPDATE tenants SET updated_at = CURRENT_TIMESTAMP WHERE id = OLD.id;
+END;
+`;
+
 /**
  * Run all pending migrations against the open better-sqlite3 instance.
  * Safe to call on every app start — already-applied versions are skipped.
@@ -312,6 +348,25 @@ function runMigrations(sqlite) {
     } catch (err) {
       sqlite.exec('ROLLBACK;');
       throw new Error(`[DB] Migration v2 failed: ${err.message}`);
+    }
+  }
+
+  if (version < 3) {
+    // Rebuilding tenants needs FKs off so referencing rows don't block DROP.
+    // PRAGMA foreign_keys must be toggled outside any transaction.
+    sqlite.pragma('foreign_keys = OFF');
+    sqlite.exec('BEGIN;');
+    try {
+      sqlite.exec(V3_DDL);
+      sqlite.pragma('user_version = 3');
+      sqlite.exec('COMMIT;');
+      sqlite.pragma('foreign_keys = ON');
+      console.log("[DB] Migration v3 applied — tenants.status now allows 'Deleted'.");
+      version = 3;
+    } catch (err) {
+      sqlite.exec('ROLLBACK;');
+      sqlite.pragma('foreign_keys = ON');
+      throw new Error(`[DB] Migration v3 failed: ${err.message}`);
     }
   }
 

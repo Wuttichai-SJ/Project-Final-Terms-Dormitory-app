@@ -9,7 +9,7 @@ const NAV_ITEMS = [
   { key: 'dashboard', label: 'หน้าหลัก',        icon: Home,          permission: 'dashboard.view' },
   { key: 'rooms',     label: 'ห้องพัก',           icon: Building2,     permission: 'rooms.view' },
   { key: 'tenants',   label: 'ผู้เช่า',           icon: UserRound,     permission: 'tenants.view' },
-  { key: 'leases',    label: 'สัญญาเช่า',         icon: FileText,      permission: 'rooms.view' },
+  { key: 'leases',    label: 'สัญญาเช่า',         icon: FileText,      permission: 'lease.checkin' },
   { key: 'billing',   label: 'ออกบิล',            icon: ClipboardList, permission: 'bills.create' },
   { key: 'summary',   label: 'สรุปการชำระ',       icon: BarChart3,     permission: 'summary.view' },
   { key: 'analytics', label: 'วิเคราะห์',         icon: BarChart3,     permission: 'analytics.view' },

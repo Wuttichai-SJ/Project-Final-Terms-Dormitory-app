@@ -29,7 +29,7 @@ function registerSettingsHandlers() {
         electricRate, waterRate, minWaterBill,
         trashFee, commonFee, internetFee,
         defaultVatRate, vatEnabled,
-        dueDays, earlyTerminationPolicy,
+        dueDays,
       } = payload;
 
       const db = getDb();
@@ -46,7 +46,9 @@ function registerSettingsHandlers() {
         defaultVatRate:         Number(defaultVatRate),
         vatEnabled:             vatEnabled ? 1 : 0,
         dueDays:                Number(dueDays),
-        earlyTerminationPolicy: earlyTerminationPolicy ?? 'A',
+        // Locked to 'A' (ริบเงินประกันทั้งหมด) — UI no longer exposes the policy picker.
+        // Move-Out / deposit refund flow must read this and never offer alternatives.
+        earlyTerminationPolicy: 'A',
         updatedByUserId:        session.id,
         updatedAt:              new Date().toISOString(),
       }).where(eq(appSettings.id, 1)).run();

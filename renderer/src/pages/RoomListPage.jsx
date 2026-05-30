@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Pencil, Trash2, BedDouble } from 'lucide-react';
+import { Plus, Pencil, Trash2, BedDouble, Search } from 'lucide-react';
 import { invoke } from '../lib/ipc';
 import { usePermission } from '../hooks/usePermission';
 import { Pagination, PAGE_SIZE } from '../components/Pagination';
@@ -24,6 +24,7 @@ export function RoomListPage() {
   const [loading, setLoading]       = useState(true);
   const [error, setError]           = useState('');
   const [filters, setFilters]       = useState({ buildingId: '', floor: '', status: '' });
+  const [roomSearch, setRoomSearch] = useState('');
   const [page, setPage]             = useState(1);
   const [editTarget, setEditTarget] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
@@ -49,14 +50,18 @@ export function RoomListPage() {
   useEffect(() => { fetchBuildings(); }, []);
   useEffect(() => { fetchRooms(); }, [filters]);
 
-  // Reset to first page whenever filters change
-  useEffect(() => { setPage(1); }, [filters]);
+  // Reset to first page whenever filters or search change
+  useEffect(() => { setPage(1); }, [filters, roomSearch]);
 
   const floorOptions = [...new Set(rooms.map(r => r.floor))].sort((a, b) => a - b);
 
-  const totalPages    = Math.max(1, Math.ceil(rooms.length / PAGE_SIZE));
+  const visibleRooms = roomSearch.trim()
+    ? rooms.filter(r => String(r.roomNumber).toLowerCase().includes(roomSearch.trim().toLowerCase()))
+    : rooms;
+
+  const totalPages    = Math.max(1, Math.ceil(visibleRooms.length / PAGE_SIZE));
   const currentPage   = Math.min(page, totalPages);
-  const paginatedRooms = rooms.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const paginatedRooms = visibleRooms.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   async function handleDelete(room) {
     const res = await invoke('room:delete', { id: room.id });
@@ -164,6 +169,16 @@ export function RoomListPage() {
                 ล้างตัวกรอง
               </button>
             )}
+
+            <div className="relative ml-auto">
+              <Search className="absolute w-4 h-4 left-3 top-2.5 text-slate-400 pointer-events-none" />
+              <input
+                value={roomSearch}
+                onChange={e => setRoomSearch(e.target.value)}
+                placeholder="ค้นหาหมายเลขห้อง..."
+                className="w-56 pl-9 pr-3 py-2 text-sm bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent hover:border-slate-300 transition-colors"
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -175,10 +190,12 @@ export function RoomListPage() {
             <div key={i} className="m-3 border-b h-14 border-slate-100 last:border-0 animate-pulse bg-slate-50/60 rounded-xl" />
           ))}
         </div>
-      ) : rooms.length === 0 ? (
+      ) : visibleRooms.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-3 py-24 text-slate-300">
           <BedDouble className="w-12 h-12" />
-          <p className="text-sm text-slate-400">ไม่พบห้องพักที่ตรงกับเงื่อนไข</p>
+          <p className="text-sm text-slate-400">
+            {roomSearch.trim() ? `ไม่พบห้องที่ตรงกับ "${roomSearch}"` : 'ไม่พบห้องพักที่ตรงกับเงื่อนไข'}
+          </p>
         </div>
       ) : (
         <div>
@@ -210,7 +227,7 @@ export function RoomListPage() {
                       </span>
                     </td>
                     <td className="px-5 py-3 text-slate-700">{room.basePrice.toLocaleString()} ฿</td>
-                    <td className="px-5 py-3 text-slate-500">{room.tenantName || '—'}</td>
+                    <td className="px-5 py-3 text-slate-500">{room.status === 'Occupied' ? (room.tenantName || '—') : '—'}</td>
                     <td className="px-5 py-3">
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${style.badge}`}>
                         <span className={`w-1.5 h-1.5 rounded-full ${style.dot}`} />
@@ -237,7 +254,7 @@ export function RoomListPage() {
             </tbody>
           </table>
         </div>
-        <Pagination page={currentPage} total={rooms.length} onPageChange={setPage} />
+        <Pagination page={currentPage} total={visibleRooms.length} onPageChange={setPage} />
         </div>
       )}
 
@@ -376,14 +393,22 @@ function RoomFormModal({ room, buildings, onClose, onSaved }) {
         </div>
         {isEdit && (
           <Field label="สถานะ">
-            <select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))} className={inputCls}>
-              {editableStatuses.map(s => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
-              {!editableStatuses.includes(form.status) && (
-                <option value={form.status} disabled>{STATUS_LABEL[form.status]}</option>
-              )}
-            </select>
-            {!editableStatuses.includes(form.status) && (
-              <p className="mt-1 text-xs text-amber-600">สถานะนี้ถูกจัดการโดยระบบสัญญา ไม่สามารถเปลี่ยนด้วยตนเองได้</p>
+            {editableStatuses.includes(form.status) ? (
+              // Vacant/Maintenance — staff can flip between these two manually
+              <select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))} className={inputCls}>
+                {editableStatuses.map(s => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
+              </select>
+            ) : (
+              // Occupied/Reserved — locked, must go through lease/reservation flow
+              <>
+                <select disabled value={form.status} className={`${inputCls} bg-slate-50 text-slate-400 cursor-not-allowed`}>
+                  <option value={form.status}>{STATUS_LABEL[form.status]}</option>
+                </select>
+                <p className="mt-1 text-xs text-amber-600">
+                  ห้องนี้กำลัง{form.status === 'Occupied' ? 'มีผู้เช่าอยู่' : 'ถูกจอง'} —
+                  ต้อง{form.status === 'Occupied' ? 'ยกเลิกสัญญาเช่า' : 'ยกเลิกการจอง'}ก่อนจึงจะเปลี่ยนสถานะได้
+                </p>
+              </>
             )}
           </Field>
         )}

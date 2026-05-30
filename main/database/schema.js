@@ -74,7 +74,7 @@ const tenants = sqliteTable('tenants', {
   idCard:      text('id_card').unique(),
   nationality: text('nationality'),
   address:     text('address'),
-  status:      text('status').notNull().default('Active'),     // 'Active' | 'MovedOut'
+  status:      text('status').notNull().default('Active'),     // 'Active' | 'MovedOut' | 'Deleted' (soft-delete)
   note:        text('note'),
   createdAt:   text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt:   text('updated_at'),
